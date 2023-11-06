@@ -1,0 +1,18 @@
+{
+  "name": "telegram-dlservice",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "addContacts": "npx prisma generate && node ./contactAdd.ts",
+    "add-to-group": "npx prisma generate && node ./secAddGroup.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^5.5.2",
+    "prisma": "^5.5.2",
+    "puppeteer": "^21.4.1"
+  }
+}
