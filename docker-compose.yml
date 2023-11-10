@@ -1,0 +1,27 @@
+version: '3.9'
+services:
+  postgres:
+    container_name: dl-service
+    image: postgres:15.1-alpine3.16
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USERNAME: postgres
+      POSTGRES_PASSWORD: 1234
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+
+  adminer:
+    image: dpage/pgadmin4
+    restart: always
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: 1234
+    depends_on:
+      - postgres
+
+volumes:
+  pgdata:

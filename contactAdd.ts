@@ -1,6 +1,6 @@
 const { PrismaClient } = require("@prisma/client");
 const puppeteer = require("puppeteer");
-const prisma = new PrismaClient();
+export const prisma = new PrismaClient();
 
 const addContacts = async () => {
   const browser = await puppeteer.launch({
@@ -26,6 +26,24 @@ const addContacts = async () => {
     "body > div.popup.popup-create-contact.popup-send-photo.popup-new-media.active > div > div.popup-header > button.btn-icon.popup-close";
 
   const contactList = await getContactsList();
+  const uniqueContactsMap = new Map();
+
+  for (let i = 0; i < contactList.length; i++) {
+    const contact = contactList[i];
+    const { number } = contact;
+
+    if (!uniqueContactsMap.has(number)) {
+      uniqueContactsMap.set(number, i);
+    }
+  }
+
+  console.log(uniqueContactsMap.size);
+
+  const uniqueCombinations = Array.from(uniqueContactsMap.entries()).map(
+    ([number, index]) => ({ number, index })
+  );
+
+  console.log(uniqueCombinations);
   const page = await browser.newPage();
   await page.setViewport({
     width: 1700, // Your desired width
@@ -37,23 +55,32 @@ const addContacts = async () => {
 
   await page.waitForSelector(contactsButtonClass);
   await page.click(contactsButtonClass);
-
-  for (const lead in contactList) {
-    console.log(contactList[lead]);
+  console.log(uniqueCombinations.length);
+  for (const lead in uniqueCombinations) {
+    console.log(contactList[uniqueCombinations[lead].index]);
 
     await page.waitForSelector(addContactButtonClass);
     await page.waitForTimeout(500);
     await page.click(addContactButtonClass);
 
     await page.waitForSelector(firstNameInputClass);
-    await page.type(firstNameInputClass, contactList[lead].number);
-    await page.type(lastNameInputClass, contactList[lead].name || "");
+    await page.type(
+      firstNameInputClass,
+      contactList[uniqueCombinations[lead].index].number
+    );
+    await page.type(
+      lastNameInputClass,
+      contactList[uniqueCombinations[lead].index].name || ""
+    );
 
-    await page.evaluate((phoneNumberInputClass) => {
+    await page.evaluate((phoneNumberInputClass: any) => {
       const phoneInput = document.querySelector(phoneNumberInputClass);
       phoneInput.innerText = "";
     }, phoneNumberInputClass);
-    await page.type(phoneNumberInputClass, contactList[lead].number);
+    await page.type(
+      phoneNumberInputClass,
+      contactList[uniqueCombinations[lead].index].number
+    );
 
     await new Promise((resolve) => setTimeout(resolve, 5000));
     await page.click(confirmAddContactClass);
@@ -62,7 +89,7 @@ const addContacts = async () => {
     if (!closeButton) {
       await prisma.contact_list.update({
         where: {
-          id: contactList[lead].id,
+          id: contactList[uniqueCombinations[lead].index].id,
         },
         data: {
           is_added: true,
@@ -74,7 +101,7 @@ const addContacts = async () => {
       await page.click(popupCloseClass);
       await prisma.contact_list.update({
         where: {
-          id: contactList[lead].id,
+          id: contactList[uniqueCombinations[lead].index].id,
         },
         data: {
           is_added: false,
@@ -89,20 +116,20 @@ const addContacts = async () => {
 const getContactsList = async () => {
   const oneDayAgo = new Date();
   oneDayAgo.setDate(oneDayAgo.getDate() - 2);
-  console.log(
-    await prisma.contact_list.count({
-      where: {
-        country: "UK",
-        is_added: false,
-        created_at: {
-          lt: oneDayAgo,
-        },
-      },
-      orderBy: {
-        id: "asc",
-      },
-    })
-  );
+  // console.log(
+  //   await prisma.contact_list.count({
+  //     where: {
+  //       country: "UK",
+  //       is_added: false,
+  //       created_at: {
+  //         lt: oneDayAgo,
+  //       },
+  //     },
+  //     orderBy: {
+  //       id: "asc",
+  //     },
+  //   })
+  // );
   return await prisma.contact_list.findMany({
     where: {
       // csv_group: 8,
